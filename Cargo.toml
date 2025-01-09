@@ -1,0 +1,15 @@
+[package]
+name = "covtunes"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iced = "0.4.2"
+iced_native = "0.5.0"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+lto = true
