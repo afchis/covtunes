@@ -1,4 +1,4 @@
-use iced::widget::{button, center, column};
+ se iced::widget::{button, center, column};
 use iced::window;
 use iced::{Center, Element, Task};
 use rodio::{OutputStream, Sink, Decoder};
@@ -7,7 +7,7 @@ use std::io::BufReader;
 use std::thread;
 
 pub fn main() -> iced::Result {
-    iced::application("AfchisApp", MyApp::update, MyApp::view).run()
+    iced::application("AfchisApp - Iced", MyApp::update, MyApp::view).run()
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -73,12 +73,10 @@ impl MyApp {
         // Load an audio file
         let file = BufReader::new(File::open("./.data/sound.mp3").unwrap());
         let source = Decoder::new(file).unwrap();
-        self.is_playing = true;
 
         // Play the sound
         sink.append(source);
         sink.sleep_until_end();
-        self.is_playing = false;
     }
 }
 
