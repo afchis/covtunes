@@ -1,13 +1,15 @@
- se iced::widget::{button, center, column};
+use iced::widget::{button, center, column};
 use iced::window;
 use iced::{Center, Element, Task};
 use rodio::{OutputStream, Sink, Decoder};
 use std::fs::File;
 use std::io::BufReader;
 use std::thread;
+use std::sync::{Arc, Mutex};
 
 pub fn main() -> iced::Result {
-    iced::application("AfchisApp - Iced", MyApp::update, MyApp::view).run()
+    iced::application("AfchisApp - Iced", MyApp::update, MyApp::view)
+        .run_with(|| (MyApp::new(), iced::Task::none()))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -19,22 +21,29 @@ enum Message {
 
 #[derive(Default)]
 struct MyApp {
+    sink: Option<Arc<Mutex<Sink>>>, // Хранение Sink
     show_confirm: bool,
-    is_playing: bool,
 }
 
 impl MyApp {
     fn new() -> Self {
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Sink::try_new(&stream_handle).unwrap(); // Используем unwrap для обработки ошибки
+        println!("Initilate MyApp");
+
         Self {
             show_confirm: false,
-            is_playing: false,
-        }
+            sink: Some(Arc::new(Mutex::new(sink))), // Инициализация Sink
+        } 
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::PlayAudio => {
-                thread::spawn(|| Self::play_audio());
+                if let Some(sink) = &self.sink {
+                    let sink_clone = Arc::clone(sink); // Клонируем Arc
+                    thread::spawn(move || Self::play_audio(sink_clone));
+                }
                 Task::none()
             }
             Message::Confirm => window::get_latest().and_then(window::close),
@@ -66,17 +75,16 @@ impl MyApp {
         center(content).padding(20).into()
     }
 
-    fn play_audio() {
-        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-        let sink = Sink::try_new(&stream_handle).unwrap();
-
-        // Load an audio file
+    fn play_audio(sink: Arc<Mutex<Sink>>) {
+        // Загрузка аудиофайла
         let file = BufReader::new(File::open("./.data/sound.mp3").unwrap());
         let source = Decoder::new(file).unwrap();
+        
+        let sink = sink.lock().unwrap();
 
-        // Play the sound
+        // Воспроизведение звука
         sink.append(source);
-        sink.sleep_until_end();
+        println!("Audio source appended to sink.");
+        sink.sleep_until_end(); // Блокировка потока до завершения воспроизведения
     }
 }
-
